@@ -1,0 +1,10 @@
+[
+  {
+    "id": 1778999103509,
+    "name": "app-vpc",
+    "subnet": "172.20.0.0/16",
+    "dockerNetwork": "app-vpc",
+    "dockerNetworkId": "f02c1c5a0d5dd1b3bffe59fb8543fbb4d565844f9289d8c5d03342890a642eed",
+    "createdAt": "2026-05-17T06:25:03.509Z"
+  }
+]

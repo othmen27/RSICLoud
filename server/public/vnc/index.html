@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VM Console - OpenNebula UI</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .back-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .back-btn:hover {
+            background: #0056b3;
+        }
+        .connection-info {
+            background: #333;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .connection-info h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        .code-block {
+            background: #222;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            margin: 10px 0;
+            border: 1px solid #555;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn.secondary {
+            background: #2196F3;
+        }
+        .btn.secondary:hover {
+            background: #0b7dda;
+        }
+        .warning {
+            background: #ff9800;
+            color: black;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>VM Console Connection</h1>
+            <a href="/" class="back-btn">← Back to Dashboard</a>
+        </div>
+
+        <div class="warning">
+            <strong>Note:</strong> To connect to your VM, you'll need a VNC client installed on your local machine.
+        </div>
+
+        <div class="connection-info">
+            <h3>VNC Connection Details</h3>
+            <p><strong>Host:</strong> localhost</p>
+            <p><strong>Port:</strong> <span id="vnc-port">5901</span></p>
+            <p><strong>Password:</strong> (none required)</p>
+
+            <h4>Connection Methods:</h4>
+
+            <div>
+                <strong>1. Using a VNC Client:</strong><br>
+                <div class="code-block" id="vnc-command">vncviewer localhost:5901</div>
+                <button class="btn" onclick="copyToClipboard('vncviewer localhost:' + getPort())">Copy Command</button>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <strong>2. Using SSH Tunnel (if VNC port is not directly accessible):</strong><br>
+                <div class="code-block" id="ssh-tunnel">ssh -L 5901:localhost:5901 user@server</div>
+                <button class="btn secondary" onclick="copyToClipboard('ssh -L ' + getPort() + ':localhost:' + getPort() + ' user@server')">Copy SSH Tunnel</button>
+            </div>
+        </div>
+
+        <div class="connection-info">
+            <h3>SSH Access (if available)</h3>
+            <p><strong>Host:</strong> <span id="ssh-host">N/A</span></p>
+            <p><strong>Port:</strong> 22</p>
+            <p><strong>Username:</strong> root</p>
+
+            <div class="code-block" id="ssh-command">ssh root@N/A</div>
+            <button class="btn" onclick="copySSHCommand()">Copy SSH Command</button>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <p>Don't have a VNC client? Download one:</p>
+            <a href="https://www.realvnc.com/en/connect/download/viewer/" class="btn" target="_blank">Download RealVNC Viewer</a>
+            <a href="https://www.tightvnc.com/download.php" class="btn secondary" target="_blank">Download TightVNC</a>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const host = urlParams.get('host') || 'localhost';
+        const port = urlParams.get('port') || '5901';
+        const sshHost = urlParams.get('ssh_host') || 'N/A';
+
+        document.getElementById('vnc-port').textContent = port;
+        document.getElementById('ssh-host').textContent = sshHost;
+        document.getElementById('vnc-command').textContent = `vncviewer ${host}:${port}`;
+        document.getElementById('ssh-command').textContent = `ssh root@${sshHost}`;
+
+        function getPort() {
+            return port;
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard!');
+            });
+        }
+
+        function copySSHCommand() {
+            const sshHost = document.getElementById('ssh-host').textContent;
+            if (sshHost !== 'N/A') {
+                copyToClipboard(`ssh root@${sshHost}`);
+            } else {
+                alert('SSH host not available for this VM');
+            }
+        }
+    </script>
+</body>
+</html>
