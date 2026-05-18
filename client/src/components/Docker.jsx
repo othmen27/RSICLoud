@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaDocker, FaPlay, FaStop, FaTrash, FaExclamationTriangle } from 'react-icons/fa';
-import { getDockerContainers, getDockerNetworks, createDockerContainer, createDockerNetwork, uploadFilesToDockerContainer } from '../services/opennebulaApi';
+import { getDockerContainers, getDockerNetworks, createDockerContainer, createDockerNetwork, uploadFilesToDockerContainer, startDockerContainer, stopDockerContainer, deleteDockerContainer } from '../services/opennebulaApi';
 import axios from 'axios';
 
 function CreateContainerForm({ onCreated, networks }) {
@@ -164,6 +164,7 @@ const Docker = () => {
   const [uploadData, setUploadData] = useState({});
   const [uploadingContainerId, setUploadingContainerId] = useState(null);
   const [uploadStatus, setUploadStatus] = useState({});
+  const [actionLoading, setActionLoading] = useState({});
 
   const fetchAddonStatus = async () => {
     try {
@@ -250,6 +251,42 @@ const Docker = () => {
         destinationPath,
       },
     }));
+  };
+
+  const handleContainerAction = async (container, action) => {
+    const actionVerb = action === 'start' ? 'Starting' : 'Stopping';
+    setActionLoading((prev) => ({ ...prev, [container.id]: action }));
+
+    try {
+      if (action === 'start') {
+        await startDockerContainer(container.id);
+      } else {
+        await stopDockerContainer(container.id);
+      }
+      await refreshAll();
+    } catch (error) {
+      const message = error?.response?.data?.error || error.message || `${actionVerb} failed`;
+      window.alert(`${actionVerb} container failed: ${message}`);
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [container.id]: null }));
+    }
+  };
+
+  const handleDeleteContainer = async (container) => {
+    if (!window.confirm(`Delete container ${container.name || container.id}? This cannot be undone.`)) {
+      return;
+    }
+
+    setActionLoading((prev) => ({ ...prev, [container.id]: 'delete' }));
+    try {
+      await deleteDockerContainer(container.id);
+      await refreshAll();
+    } catch (error) {
+      const message = error?.response?.data?.error || error.message || 'Delete failed';
+      window.alert(`Delete container failed: ${message}`);
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [container.id]: null }));
+    }
   };
 
   const handleUploadFiles = async (container) => {
@@ -410,10 +447,37 @@ const Docker = () => {
                 </div>
               )}
               <p className="text-gray-600 dark:text-gray-300 mb-4">
-                Status: <span className={`font-medium ${container.status?.includes('Up') ? 'text-green-500' : 'text-red-500'}`}>
+                Status: <span className={`font-medium ${container.status?.toLowerCase().includes('up') ? 'text-green-500' : 'text-red-500'}`}>
                   {container.status}
                 </span>
               </p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={() => handleContainerAction(container, container.status?.toLowerCase().includes('up') ? 'stop' : 'start')}
+                  disabled={!!actionLoading[container.id]}
+                  className="inline-flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-60 text-white font-semibold py-2 px-3 rounded"
+                >
+                  {actionLoading[container.id] === 'start' && 'Starting...'}
+                  {actionLoading[container.id] === 'stop' && 'Stopping...'}
+                  {actionLoading[container.id] === 'delete' && 'Working...'}
+                  {!actionLoading[container.id] && (
+                    container.status?.toLowerCase().includes('up') ? (
+                      <><FaStop /> Stop</>
+                    ) : (
+                      <><FaPlay /> Start</>
+                    )
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteContainer(container)}
+                  disabled={!!actionLoading[container.id]}
+                  className="inline-flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white font-semibold py-2 px-3 rounded"
+                >
+                  <FaTrash /> Delete
+                </button>
+              </div>
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                   Upload files directly into the container. For web servers, the default destination is auto-selected.

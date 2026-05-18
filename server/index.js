@@ -1170,6 +1170,59 @@ app.post('/api/docker/containers', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/docker/containers/:id/action', authenticateToken, async (req, res) => {
+  try {
+    if (!ADDONS_DATA['docker-machine'].installed) {
+      return res.status(400).json({ success: false, error: 'Docker Machine addon not installed' });
+    }
+
+    const containerId = req.params.id;
+    const { action } = req.body;
+    if (!['start', 'stop'].includes(action)) {
+      return res.status(400).json({ success: false, error: 'Invalid Docker action. Use start or stop.' });
+    }
+
+    const cmd = action === 'start'
+      ? `docker start "${containerId}"`
+      : `docker stop "${containerId}"`;
+
+    const output = await runCommand(cmd);
+    return res.json({ success: true, data: { id: containerId, action, output: output.trim() } });
+  } catch (err) {
+    console.error('Docker container action error:', err.message || err);
+    if (isDockerSocketPermissionError(err)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Docker socket not accessible from server process',
+        suggestion: 'Add the server user to the docker group (sudo usermod -aG docker $USER) and restart the server, or run this server with sufficient privileges.'
+      });
+    }
+    res.status(500).json({ success: false, error: err.message || 'Failed to perform Docker action' });
+  }
+});
+
+app.delete('/api/docker/containers/:id', authenticateToken, async (req, res) => {
+  try {
+    if (!ADDONS_DATA['docker-machine'].installed) {
+      return res.status(400).json({ success: false, error: 'Docker Machine addon not installed' });
+    }
+
+    const containerId = req.params.id;
+    await runCommand(`docker rm -f "${containerId}"`);
+    res.json({ success: true, data: { id: containerId } });
+  } catch (err) {
+    console.error('Docker container delete error:', err.message || err);
+    if (isDockerSocketPermissionError(err)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Docker socket not accessible from server process',
+        suggestion: 'Add the server user to the docker group (sudo usermod -aG docker $USER) and restart the server, or run this server with sufficient privileges.'
+      });
+    }
+    res.status(500).json({ success: false, error: err.message || 'Failed to delete Docker container' });
+  }
+});
+
 app.post('/api/docker/containers/:id/upload', authenticateToken, upload.array('files', 50), async (req, res) => {
   try {
     if (!ADDONS_DATA['docker-machine'].installed) {

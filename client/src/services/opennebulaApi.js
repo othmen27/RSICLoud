@@ -232,6 +232,40 @@ export const createDockerContainer = async (containerData) => {
     throw error;
   }
 };
+
+export const startDockerContainer = async (containerId) => {
+  try {
+    const response = await api.post(`/docker/containers/${containerId}/action`, { action: 'start' });
+    if (!response.data.success) throw new Error(response.data.error || 'Failed to start Docker container');
+    return response.data.data;
+  } catch (error) {
+    console.error('Error starting Docker container:', error);
+    throw error;
+  }
+};
+
+export const stopDockerContainer = async (containerId) => {
+  try {
+    const response = await api.post(`/docker/containers/${containerId}/action`, { action: 'stop' });
+    if (!response.data.success) throw new Error(response.data.error || 'Failed to stop Docker container');
+    return response.data.data;
+  } catch (error) {
+    console.error('Error stopping Docker container:', error);
+    throw error;
+  }
+};
+
+export const deleteDockerContainer = async (containerId) => {
+  try {
+    const response = await api.delete(`/docker/containers/${containerId}`);
+    if (!response.data.success) throw new Error(response.data.error || 'Failed to delete Docker container');
+    return response.data.data;
+  } catch (error) {
+    console.error('Error deleting Docker container:', error);
+    throw error;
+  }
+};
+
 export const uploadFilesToDockerContainer = async (containerId, destinationPath, files) => {
   try {
     const formData = new FormData();
